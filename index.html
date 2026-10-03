@@ -15,7 +15,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         
@@ -83,20 +83,20 @@
             background-color: #deb887;
             border: 3px solid #8b4513;
             border-radius: 10px;
-            padding: 20px;
+            padding: 15px;
             margin: 20px 0;
             overflow-x: auto;
         }
         
         .fretboard-inner {
-            min-width: 740px;
+            width: 100%;
             position: relative;
         }
         
         .string {
             display: flex;
             align-items: center;
-            margin: 15px 0;
+            margin: 12px 0;
             position: relative;
         }
         
@@ -107,34 +107,37 @@
             align-items: center;
             border-radius: 1px;
             position: relative;
+            flex-grow: 1;
         }
         
         .string-name {
-            width: 40px;
+            width: 35px;
             text-align: center;
             font-weight: bold;
             color: #fff;
             background-color: #333;
-            padding: 5px;
+            padding: 4px;
             border-radius: 5px;
-            margin-right: 10px;
+            margin-right: 8px;
+            flex-shrink: 0;
+            font-size: 13px;
         }
         
         .fret {
-            width: 48px;
-            height: 40px;
+            flex: 1;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            margin: 0 2px;
+            margin: 0 1px;
         }
         
         .fret-line {
             position: absolute;
             right: 0;
-            top: -20px;
-            bottom: -20px;
+            top: -18px;
+            bottom: -18px;
             width: 2px;
             background-color: #8B4513;
         }
@@ -145,18 +148,19 @@
         }
         
         .note {
-            width: 30px;
-            height: 30px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s ease;
             border: 2px solid transparent;
             user-select: none;
+            z-index: 2;
         }
         
         .note.root {
@@ -184,16 +188,38 @@
         
         .fret-numbers {
             display: flex;
-            padding-left: 50px;
-            margin-bottom: 10px;
+            padding-left: 43px;
+            margin-bottom: 8px;
         }
         
         .fret-number {
-            width: 52px;
+            flex: 1;
             text-align: center;
-            font-size: 12px;
+            font-size: 11px;
             color: #333;
             font-weight: bold;
+        }
+
+        /* 12フレット表示のときのサイズ調整用クラス */
+        .fretboard.mode-12f .fret {
+            flex: 0 0 48px;
+            margin: 0 2px;
+        }
+        .fretboard.mode-12f .fret-number {
+            flex: 0 0 52px;
+        }
+        .fretboard.mode-12f .note {
+            width: 30px;
+            height: 30px;
+            font-size: 12px;
+        }
+        .fretboard.mode-12f .fretboard-inner {
+            min-width: 740px;
+        }
+
+        /* 24フレット表示のときはスクロールさせず詰め込む */
+        .fretboard.mode-24f .fretboard-inner {
+            min-width: auto;
         }
         
         .legend {
@@ -310,7 +336,6 @@
             padding-top: 20px;
         }
         
-        /* h3のスタイルを共通化 */
         .version-history h3, .notice h3, .related-links h3 {
             color: #ccc;
             margin-top: 0;
@@ -326,11 +351,11 @@
             margin-bottom: 8px;
         }
         
-        .related-links a { /* リンクのスタイルを追加 */
+        .related-links a {
             color: #8ab4f8;
             text-decoration: none;
         }
-        .related-links a:hover { /* リンクのホバー時スタイルを追加 */
+        .related-links a:hover {
             text-decoration: underline;
         }
 
@@ -384,6 +409,13 @@
                     <option value="melodicMinor">メロディックマイナー</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label>フレット数</label>
+                <div class="display-toggle">
+                    <button id="toggle12F" class="toggle-btn active">12F</button>
+                    <button id="toggle24F" class="toggle-btn">24F</button>
+                </div>
+            </div>
              <div class="control-group">
                 <label>表示切替</label>
                 <div class="display-toggle">
@@ -403,8 +435,8 @@
             <div class="scale-degrees-verbose" id="scaleDegreesVerbose">1st - M2nd - M3rd - 4th - 5th - M6th - M7th</div>
         </div>
         
-        <div class="fretboard">
-            <div class="fretboard-inner">
+        <div class="fretboard mode-12f" id="fretboardContainer">
+            <div class="fretboard-inner" id="fretboardInner">
                 <div class="fret-numbers" id="fretNumbers"></div>
                 <div id="fretboard-content"></div>
             </div>
@@ -446,6 +478,7 @@
                 <h3>改版履歴</h3>
                 <ul>
                     <li>Ver. 0.1: 2025/08/18, ギター指板スケール表示アプリβ版の公開。</li>
+                    <li>Ver. 0.2: 2026/10/03, ギター指板の12F/24Fの表示切り替えを追加。</li>
                 </ul>
             </div>
             <br>
@@ -591,9 +624,12 @@
         const rootNoteEl = document.getElementById('rootNote');
         const scaleTypeEl = document.getElementById('scaleType');
         const fretboardContent = document.getElementById('fretboard-content');
+        const fretboardContainer = document.getElementById('fretboardContainer');
         const fretNumbersEl = document.getElementById('fretNumbers');
         const toggleNoteNameBtn = document.getElementById('toggleNoteName');
         const toggleDegreeBtn = document.getElementById('toggleDegree');
+        const toggle12FBtn = document.getElementById('toggle12F');
+        const toggle24FBtn = document.getElementById('toggle24F');
         const playScaleButton = document.getElementById('playScaleButton');
 
         // --- Audio Context for Sound ---
@@ -607,6 +643,7 @@
         
         // --- App State ---
         let currentDisplayMode = 'noteName';
+        let maxFrets = 12;
 
         // --- Functions ---
         const getNoteNumber = (note) => notes.indexOf(note);
@@ -653,7 +690,7 @@
             const selectedStrings = tunings[stringCountEl.value][tuningEl.value].strings;
 
             [...selectedStrings].reverse().forEach(stringInfo => {
-                for (let fret = 0; fret <= 12; fret++) {
+                for (let fret = 0; fret <= maxFrets; fret++) {
                     const noteAtFret = getNoteAtFret(stringInfo.openNote, fret);
                     if (scaleNoteSet.has(noteAtFret)) {
                         const octave = stringInfo.octave + Math.floor((getNoteNumber(stringInfo.openNote) + fret) / 12);
@@ -681,7 +718,6 @@
         function updateTuningOptions(savedTuning = null) {
             const count = stringCountEl.value;
             const availableTunings = tunings[count];
-            let currentTuning = tuningEl.value;
             tuningEl.innerHTML = '';
 
             for (const key in availableTunings) {
@@ -706,8 +742,15 @@
             
             const selectedStrings = tunings[stringCountEl.value][tuningEl.value].strings;
             
+            // クラスを切り替えて12F/24Fの表示スタイルを制御
+            if (maxFrets === 24) {
+                fretboardContainer.className = 'fretboard mode-24f';
+            } else {
+                fretboardContainer.className = 'fretboard mode-12f';
+            }
+
             fretNumbersEl.innerHTML = '';
-            for (let fret = 0; fret <= 12; fret++) {
+            for (let fret = 0; fret <= maxFrets; fret++) {
                 const fretNumEl = document.createElement('div');
                 fretNumEl.className = 'fret-number';
                 fretNumEl.textContent = fret;
@@ -728,7 +771,7 @@
                 const stringLine = document.createElement('div');
                 stringLine.className = 'string-line';
                 
-                for (let fret = 0; fret <= 12; fret++) {
+                for (let fret = 0; fret <= maxFrets; fret++) {
                     const fretEl = document.createElement('div');
                     fretEl.className = 'fret';
                     
@@ -807,13 +850,21 @@
             drawFretboard();
         }
 
+        function setFretRange(frets) {
+            maxFrets = frets;
+            toggle12FBtn.classList.toggle('active', frets === 12);
+            toggle24FBtn.classList.toggle('active', frets === 24);
+            drawFretboard();
+        }
+
         function saveState() {
             const state = {
                 stringCount: stringCountEl.value,
                 tuning: tuningEl.value,
                 rootNote: rootNoteEl.value,
                 scaleType: scaleTypeEl.value,
-                displayMode: currentDisplayMode
+                displayMode: currentDisplayMode,
+                maxFrets: maxFrets
             };
             localStorage.setItem('guitarAppState', JSON.stringify(state));
         }
@@ -827,6 +878,7 @@
                 rootNoteEl.value = state.rootNote || 'C';
                 scaleTypeEl.value = state.scaleType || 'major';
                 setDisplayMode(state.displayMode || 'noteName');
+                setFretRange(state.maxFrets || 12);
             } else {
                 updateTuningOptions();
             }
@@ -839,6 +891,8 @@
         scaleTypeEl.addEventListener('change', drawFretboard);
         toggleNoteNameBtn.addEventListener('click', () => setDisplayMode('noteName'));
         toggleDegreeBtn.addEventListener('click', () => setDisplayMode('degree'));
+        toggle12FBtn.addEventListener('click', () => setFretRange(12));
+        toggle24FBtn.addEventListener('click', () => setFretRange(24));
         playScaleButton.addEventListener('click', playScaleSequence);
         
         // --- Initial Load ---
